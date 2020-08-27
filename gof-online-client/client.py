@@ -8,7 +8,7 @@ from sys import argv, exit
 
 # constants
 JAVA_PATH = "C:/Users/MATTPA~1/Desktop/jdk/jdk-12.0.2/bin/java.exe"
-ENGINE_PATH = "../engine/bin/"
+ENGINE_PATH = "../engine/gof-ismcts/bin/"
 ENGINE_MAIN_CLASS = "ISMCTS"
 
 USERNAME_DEFAULT = "big_bot"
@@ -54,6 +54,17 @@ class Client:
         # process new game states
         @self.sio.on('game_state')
         def onGameState(game_state):
+            # parse messages
+            for message in game_state['messages']:
+                u = message['username']
+                m = message['message']
+
+                if u == "Server":  # server message
+                    if len(m) >= 13 and m[:13] == "Game starting":  # check for starting new game
+                        print('Game starting')
+                        self.cards_played = []
+                        self.old_game_state = None
+
             # if game active
             if game_state['active']:
                 # if new game state

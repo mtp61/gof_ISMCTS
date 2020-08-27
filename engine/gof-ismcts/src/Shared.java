@@ -48,6 +48,8 @@ public class Shared {
 	
 	// return the reward array from the array of cards remaining
 	public static int[] calcReward(int[] remaining_cards) {
+		//return remaining_cards;
+		
 		int[] reward_array = new int[4];
 		
 		for (int i = 0; i < 4; i++) {
@@ -264,16 +266,24 @@ public class Shared {
 				// must be a full house
 				if (Shared.getValue(hand[1]) == Shared.getValue(hand[2])) {  // 3 is first 3
 					score = 1000000 * Shared.getValue(hand[0]) + 100000 * Shared.getValue(hand[4]) + 3000000;
+					ten_power = 10000;
+					for (int j = 2; j >= 0; j--) {  // add colors for the 3
+						score += ten_power * Shared.getColor(hand[j]);
+						ten_power /= 10;
+					}
+					for (int j = 4; j >= 3; j--) {  // for the 2
+						score += ten_power * Shared.getColor(hand[j]);
+						ten_power /= 10;
+					}
 				} else {  // 3 is last 3
 					score = 1000000 * Shared.getValue(hand[4]) + 100000 * Shared.getValue(hand[0]) + 3000000;
-				}
-				ten_power = 10000;
-				for (int j = 4; j >= 0; j--) {
-					score += ten_power * Shared.getColor(hand[j]);
-					ten_power /= 10;
+					ten_power = 10000;
+					for (int j = 4; j >= 0; j--) {
+						score += ten_power * Shared.getColor(hand[j]);
+						ten_power /= 10;
+					}
 				}
 				return score;
-
 		}
 		
 		return -1;

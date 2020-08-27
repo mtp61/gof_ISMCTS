@@ -1,4 +1,6 @@
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 
 public class ISMCTS {
@@ -9,7 +11,7 @@ public class ISMCTS {
 		int[] player1_cards = {11,12,32,40,41,41,50,52,60,61,62,90,90,91};
 		int[] card_counts = {14,12,16,14};
 		int[] cards_played = {10,11,31,32,100,100,102,102};
-		int[] current_hand = {100,100,102,102}; //{};
+		int[] current_hand = { }; //{};
 		int num_passes = 2;  // 0
 		int player_to_act = 1;
 		if (args.length != 0) {  // load test vars
@@ -59,6 +61,8 @@ public class ISMCTS {
 			num_passes = Integer.valueOf(args[6]);
 			player_to_act = Integer.valueOf(args[7]);;
 		}
+		// todo change
+		player_to_act = 1;
 		
 		Arrays.sort(player1_cards);
 		
@@ -72,36 +76,77 @@ public class ISMCTS {
 			throw new Exception("Incorrect number of cards played");
 		}
 		
+		int current_hand_score = Shared.getScore(current_hand);
+
 		// make hand Indices
 		HandIndices handIndices = new HandIndices();
 		
 		// make root node
 		Node root = new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes, player_to_act);
-		
-		// make nodes for each possible player1 action
-		// add node for passing
-		if (num_passes < 3) {
-			root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
-		} else {
-			root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
-		}
-		
+
+		// make nodes for each possible player1 action		
 		// get possible actions
 		// this code is straight from randomD, can probably do a lot better... thought it is only run once so it shouldn't matter much
 		LinkedList<Hand>[] actions = new LinkedList[5];
 		
-		int current_hand_score = Shared.getScore(current_hand);
-		
 		int[] possible_play_cards;  // array of the possible number of cards
-		switch (current_hand.length) {
-		case 0:
-			possible_play_cards = new int[] { 1, 2, 3, 4, 5 };
-			break;
-		case 4:
-			possible_play_cards = new int[] { 4 };
-			break;
-		default:
-			possible_play_cards = new int[] { current_hand.length, 4 };
+		
+		// check if we need to play highest single
+		if (current_hand.length == 1 && card_counts[Shared.nextPlayer(player_to_act)] == 1) {
+			// get highest single
+			int highest_single = player1_cards[player1_cards.length - 1];
+			if (highest_single > current_hand[0]) {
+				// add highest single node and gangs
+				actions[0].add(new Hand(new int[] { highest_single }, 1));
+				
+				possible_play_cards = new int[] { 4 };
+
+			} else {
+				// add passing node and gangs
+				if (num_passes < 3) {
+					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
+				} else {
+					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
+				}
+				
+				possible_play_cards = new int[] { 4 };
+			}
+		} else if (current_hand.length == 0 && card_counts[Shared.nextPlayer(player_to_act)] == 1) {
+			int highest_single = player1_cards[player1_cards.length - 1];
+			if (highest_single > current_hand[0]) {
+				// add highest single and non singles
+				actions[0].add(new Hand(new int[] { highest_single }, 1));
+
+				possible_play_cards = new int[] { 2, 3, 4, 5 };
+			} else {
+				// add passing node and non-singles
+				if (num_passes < 3) {
+					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
+				} else {
+					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
+				}
+				
+				possible_play_cards = new int[] { 2, 3, 4, 5 };
+			}
+		} else {
+			// add passing node
+			if (num_passes < 3) {
+				root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
+			} else {
+				root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
+			}
+			
+			// add other nodes
+			switch (current_hand.length) {
+			case 0:
+				possible_play_cards = new int[] { 1, 2, 3, 4, 5 };
+				break;
+			case 4:
+				possible_play_cards = new int[] { 4 };
+				break;
+			default:
+				possible_play_cards = new int[] { current_hand.length, 4 };
+			}
 		}
 		
 		// initialize the required actions
@@ -183,7 +228,6 @@ public class ISMCTS {
 		// do until max itr or max time
 		long itr = 0;
 		long start_time = System.currentTimeMillis();
-		boolean must_pass = false;
 		while ((max_itr == -1 || itr < max_itr) && (max_time == -1 || System.currentTimeMillis() - start_time < max_time * 1000)) {
 			// select an action node
 			double max_score = -1;
@@ -224,7 +268,6 @@ public class ISMCTS {
 		for (int i = 0; i < root.getChildren().size(); i++) {
 			Node child = root.getChildren().get(i);	
 			int node_visits = child.getVisitCount();
-			
 			if (node_visits > most_visits) {
 				most_visited_action = child.getLastAction();
 				most_visits = node_visits;
@@ -233,14 +276,38 @@ public class ISMCTS {
 		
 		
 		// printing
-		System.out.println(root.getChildren().size() + " options for root player:");
-		for (int i = 0; i < root.getChildren().size(); i++) {
-			System.out.print("  " + root.getChildren().get(i).getTotalReward()[0] + " wins, " + root.getChildren().get(i).getVisitCount() + " visits with action ");
-			Shared.printArray(root.getChildren().get(i).getLastAction());
+		LinkedList<PrintObj> print_objs = new LinkedList<>();
+		for (int i = 0; i < root.getChildren().size(); i++) {  // add print objs to list
+			Node child = root.getChildren().get(i);
+			int[] hand = child.getLastAction();
+			int win_percentage = (int) (100 * ((double) root.getChildren().get(i).getTotalReward()[0] / root.getChildren().get(i).getVisitCount()));
+			
+			print_objs.add(new PrintObj(hand, win_percentage));
 		}
-		System.out.println(itr + " games simulated");
+		
+		// sort list
+		Collections.sort(print_objs, new Comparator<PrintObj>() {
+			@Override
+			public int compare(PrintObj p1, PrintObj p2) {
+				return p1.win_percentage - p2.win_percentage;
+			}
+		});
+		
+		// print list complete
+		System.out.println(root.getChildren().size() + " options for root player with " + itr + " games simulated");
+		for (int i = 0; i < print_objs.size(); i++) {			
+			PrintObj print_obj = print_objs.get(i);
+			if (print_obj.win_percentage < 10) {
+				System.out.print("   " + print_obj.win_percentage + " % - ");
+			} else {
+				System.out.print("  " + print_obj.win_percentage + " % - ");
+			}
+			Shared.printArray(print_obj.hand);
+		}
 		System.out.println();
 		
+		// print list small
+		// todo
 		
 		// print action
 		System.out.print("action ");
