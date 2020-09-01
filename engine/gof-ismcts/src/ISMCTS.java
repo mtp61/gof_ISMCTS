@@ -1,18 +1,25 @@
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Random;
 
 public class ISMCTS {
 	public static void main(String args[]) throws Exception {
+		// initialize handindices and shared
+		new HandIndices();
+		new Shared();
+		
 		// default to testing values
 		long max_itr = 10000;
 		long max_time = 5;
-		int[] player1_cards = {11,12,32,40,41,41,50,52,60,61,62,90,90,91};
-		int[] card_counts = {14,12,16,14};
-		int[] cards_played = {10,11,31,32,100,100,102,102};
-		int[] current_hand = { }; //{};
-		int num_passes = 2;  // 0
+		int[] player1_cards = {32,32,52,92,102,111,112};
+		int[] card_counts = {7,10,5,5};
+		int[] cards_played = {20,72,80,81,81,82,10,10,70,70,71,71,30,41,51,62,72,11,12,12,30,31,20,22,60,61,62,11,13,21,31,51,22,42,52,92,102};
+		int[] current_hand = {22,42,52,92,102};
+		int num_passes = 0;
 		int player_to_act = 1;
 		if (args.length != 0) {  // load test vars
 			max_itr = Long.valueOf(args[0]);
@@ -59,13 +66,8 @@ public class ISMCTS {
 			}
 			
 			num_passes = Integer.valueOf(args[6]);
-			player_to_act = Integer.valueOf(args[7]);;
 		}
-		// todo change
-		player_to_act = 1;
-		
-		Arrays.sort(player1_cards);
-		
+				
 		// make sure player cards size is same as card count
 		if (player1_cards.length != card_counts[0]) {
 			throw new Exception("Incorrect number of player cards");
@@ -76,188 +78,110 @@ public class ISMCTS {
 			throw new Exception("Incorrect number of cards played");
 		}
 		
-		int current_hand_score = Shared.getScore(current_hand);
-
 		// make hand Indices
-		HandIndices handIndices = new HandIndices();
-		
+		Arrays.sort(player1_cards);
+
 		// make root node
-		Node root = new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes, player_to_act);
-
-		// make nodes for each possible player1 action		
-		// get possible actions
-		// this code is straight from randomD, can probably do a lot better... thought it is only run once so it shouldn't matter much
-		LinkedList<Hand>[] actions = new LinkedList[5];
-		
-		int[] possible_play_cards;  // array of the possible number of cards
-		
-		// check if we need to play highest single
-		if (current_hand.length == 1 && card_counts[Shared.nextPlayer(player_to_act)] == 1) {
-			// get highest single
-			int highest_single = player1_cards[player1_cards.length - 1];
-			if (highest_single > current_hand[0]) {
-				// add highest single node and gangs
-				actions[0].add(new Hand(new int[] { highest_single }, 1));
-				
-				possible_play_cards = new int[] { 4 };
-
-			} else {
-				// add passing node and gangs
-				if (num_passes < 3) {
-					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
-				} else {
-					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
-				}
-				
-				possible_play_cards = new int[] { 4 };
-			}
-		} else if (current_hand.length == 0 && card_counts[Shared.nextPlayer(player_to_act)] == 1) {
-			int highest_single = player1_cards[player1_cards.length - 1];
-			if (highest_single > current_hand[0]) {
-				// add highest single and non singles
-				actions[0].add(new Hand(new int[] { highest_single }, 1));
-
-				possible_play_cards = new int[] { 2, 3, 4, 5 };
-			} else {
-				// add passing node and non-singles
-				if (num_passes < 3) {
-					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
-				} else {
-					root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
-				}
-				
-				possible_play_cards = new int[] { 2, 3, 4, 5 };
-			}
-		} else {
-			// add passing node
-			if (num_passes < 3) {
-				root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes + 1, Shared.nextPlayer(player_to_act)));
-			} else {
-				root.getChildren().add(new Node(handIndices, player1_cards, card_counts, cards_played, new int[0], new int[0], 0, Shared.nextPlayer(player_to_act)));
-			}
-			
-			// add other nodes
-			switch (current_hand.length) {
-			case 0:
-				possible_play_cards = new int[] { 1, 2, 3, 4, 5 };
-				break;
-			case 4:
-				possible_play_cards = new int[] { 4 };
-				break;
-			default:
-				possible_play_cards = new int[] { current_hand.length, 4 };
-			}
-		}
-		
-		// initialize the required actions
-		for (int i = 0; i < possible_play_cards.length; i++) {
-			if (actions[possible_play_cards[i] - 1] == null) {
-				// need to initialize
-				Shared.initializeActions(handIndices, actions, player_to_act, possible_play_cards[i], player1_cards);
-			}
-		}
-		
-		// for each possible number of cards for each possible action
-		for (int i = 0; i < possible_play_cards.length; i++) {
-			for (int j = 0; j < actions[possible_play_cards[i] - 1].size(); j++) {
-				Hand action = actions[possible_play_cards[i] - 1].get(j);
-				
-				// if the score is high enough add a new node
-				if (action.getScore(player1_cards) > current_hand_score) {
-					// make temp arrays for the creation of the node
-					int[] card_list = new int[action.num_cards];
-					for (int k = 0; k < action.num_cards; k++) {
-						card_list[k] = player1_cards[action.hand[k]];
-					}
-					
-					int[] p1c_t = new int[player1_cards.length];
-					for (int k = 0; k < player1_cards.length; k++) {
-						p1c_t[k] = player1_cards[k];
-					}
-					for (int k = 0; k < action.num_cards; k++) {
-						p1c_t[action.hand[k]] = 0;
-					}
-					
-					int[] cc_t = new int[card_counts.length];
-					for (int k = 0; k < card_counts.length; k++) {
-						cc_t[k] = card_counts[k];
-					}
-					cc_t[0] -= action.num_cards;
-					
-					int[] cp_t = new int[cards_played.length + action.num_cards];
-					for (int k = 0; k < cards_played.length; k++) {
-						cp_t[k] = cards_played[k];
-					}
-					for (int k = 0; k < action.num_cards; k++) {
-						cp_t[k + cards_played.length] = player1_cards[action.hand[k]];
-					}
-					
-					root.getChildren().add(new Node(handIndices, p1c_t, cc_t, cp_t, card_list, card_list, 0, Shared.nextPlayer(player_to_act)));
-				}
-			}
-		}
-		
-		/*// 1 card only testing
-		for (int i = 0; i < player1_cards.length; i++) {
-			int card = player1_cards[i];
-			int[] card_list = {card};
-			if (Shared.getScore(card_list) > current_hand_score) {
-				// add a new node
-				int[] p1c_t = new int[player1_cards.length];
-				for (int j = 0; j < player1_cards.length; j++) {
-					p1c_t[j] = player1_cards[j];
-				}
-				p1c_t[i] = 0;
-				
-				int[] cp_t = new int[cards_played.length + 1];
-				for (int j = 0; j < cards_played.length; j++) {
-					cp_t[j] = cards_played[j];
-				}
-				cp_t[cards_played.length] = card;
-				
-				int[] cc_t = new int[card_counts.length];
-				for (int j = 0; j < card_counts.length; j++) {
-					cc_t[j] = card_counts[j];
-				}
-				cc_t[0]--;
-				
-				root.getChildren().add(new Node(handIndices, p1c_t, cc_t, cp_t, card_list, card_list, 0, Shared.nextPlayer(player_to_act)));
-			}
-		}*/
+		Node root = new Node(player1_cards, card_counts, cards_played, current_hand, new int[0], num_passes, player_to_act);
 		
 		// do until max itr or max time
 		long itr = 0;
 		long start_time = System.currentTimeMillis();
 		while ((max_itr == -1 || itr < max_itr) && (max_time == -1 || System.currentTimeMillis() - start_time < max_time * 1000)) {
-			// select an action node
-			double max_score = -1;
-			Node max_child = null; 
-			for (int i = 0; i < root.getChildren().size(); i++) {
-				Node child = root.getChildren().get(i);
-				double child_score = child.getUCB(); 
-				
-				if (child_score == Double.MAX_VALUE) {
-					max_child = child;
-					break;
-				} else if (child_score > max_score) {
-					max_child = child;
-					max_score = child_score;
+			// pick a random determiniztion
+			Determinization d = root.randomD();
+			
+			// select
+			LinkedList<Node> node_chain = new LinkedList<>();
+			node_chain.add(root);
+			LinkedList<Node> available_nodes = new LinkedList<>();
+			Node current_node = root;
+			LinkedList<Cards> no_child_actions = null;
+			while (!current_node.isTerminal()) {
+				// make a set of the actions of children
+				HashSet<Cards> action_set = new HashSet<>();  // TODO can these be stored in the nodes so they don't need to be generated every time??
+				HashMap<Cards, Node> action_map = new HashMap<>();
+				for (int i = 0; i < current_node.getChildren().size(); i++) {
+					Node child = current_node.getChildren().get(i);
+					Cards action_cards = new Cards(child.getLastAction());
+					action_set.add(action_cards);
+					action_map.put(action_cards, child);
 				}
+				
+				// get all of the actions possible from the determinization
+				LinkedList<Cards> current_node_actions = d.getActions();
+				
+				// for each action check if in actions set, break if not
+				no_child_actions = new LinkedList<>();
+				for (Cards action_cards : current_node_actions) {
+					if (!action_set.contains(action_cards)) {
+						no_child_actions.add(action_cards);
+					}
+				}
+				
+				if (no_child_actions.size() == 0) {
+					//System.out.println("getting from action map...");  // testing TODO
+					for (Cards action_cards : current_node_actions) {
+						available_nodes.add(action_map.get(action_cards));
+						
+						/*if (action_cards.cards.length == 0) {  // testing TODO
+							System.out.println("passing action in list, " + action_map.get(action_cards).getLastAction().length);
+						}*/
+					}
+				} else {
+					break;
+				}
+				
+				
+				// select an action
+				double max_score = -1;
+				Node max_node = null;
+				//System.out.println("selecting cards from " + action_set.size());
+				for (Cards cards : current_node_actions) {
+					Node action_node = action_map.get(cards);				
+					double action_node_score = action_node.getUCB(); 
+					
+					if (action_node_score > max_score ) {
+						max_node = action_node;
+						max_score = action_node_score;
+					}
+				}
+				
+				// update select vars
+				node_chain.add(max_node);
+				current_node = max_node;
+				
+				// update determinization
+				d.newAction(max_node.getLastAction());
 			}
-			Node action_node = max_child;
 			
-			// choose a random determinization from the action node
-			Determinization d = action_node.randomD();
+			// expand
+			// if not terminal
+			if (!current_node.isTerminal()) {
+				// choose an action uniformly at random
+				Random rand = new Random();
+				Cards rand_action = no_child_actions.get(rand.nextInt(no_child_actions.size()));
+				
+				// add the child node
+				//System.out.println("depth " + (node_chain.size() + 1));
+				Node child_node = current_node.newChild(rand_action.cards);
+				node_chain.add(child_node);  // add to node_chain	
+				d.newAction(rand_action.cards);  // update determinization
+				
+				child_node.incrementAvailability();
+			}			
 			
-			// simulate game
+			// simulate
 			int[] reward = d.simulateGame();
 			
-			// update action node 
-			action_node.updateReward(reward);
-			action_node.incrementVisits();
-			for (int i = 0; i < root.getChildren().size(); i++) {
-				root.getChildren().get(i).incrementAvailability();
+			// backpropagate
+			for (Node node : node_chain) {  // node chain
+				node.updateReward(reward);
+				node.incrementVisits();
 			}
+			for (Node node : available_nodes) {  // availability
+				node.incrementAvailability();
+			}		
 			
 			itr++;
 		}
@@ -273,7 +197,6 @@ public class ISMCTS {
 				most_visits = node_visits;
 			}
 		}
-		
 		
 		// printing
 		LinkedList<PrintObj> print_objs = new LinkedList<>();
@@ -307,7 +230,7 @@ public class ISMCTS {
 		System.out.println();
 		
 		// print list small
-		// todo
+		// TODO
 		
 		// print action
 		System.out.print("action ");

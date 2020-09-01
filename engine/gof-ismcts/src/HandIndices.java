@@ -7,11 +7,11 @@ import java.util.Scanner;
 public class HandIndices {
 	private String dir_path = "D:/programming/gof_ISMCTS/handIndices/";
 	
-	public int[][] i1 = new int[16][1];
-	public int[][] i2 = new int[66][2];
-	public int[][] i3 = new int[125][3];
-	public int[][] i4 = new int[125][4];
-	public int[][] i5 = new int[4368][5];
+	public static int[][] i1 = new int[16][1];
+	public static int[][] i2 = new int[66][2];
+	public static int[][] i3 = new int[125][3];
+	public static int[][] i4 = new int[125][4];
+	public static int[][] i5 = new int[4368][5];
 	
 	public HandIndices() throws FileNotFoundException {
 		for (int i = 1; i < 6; i++) {
@@ -20,19 +20,19 @@ public class HandIndices {
 			int[][] array = null;
 			switch (i) {
 				case 1:
-					array = this.i1;
+					array = HandIndices.i1;
 					break;
 				case 2:
-					array = this.i2;
+					array = HandIndices.i2;
 					break;
 				case 3:
-					array = this.i3;
+					array = HandIndices.i3;
 					break;
 				case 4:
-					array = this.i4;
+					array = HandIndices.i4;
 					break;
 				case 5:
-					array = this.i5;
+					array = HandIndices.i5;
 					break;
 			}
 			            			

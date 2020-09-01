@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -33,6 +34,14 @@ public class Shared {
 		110, 111, 112
 	};
 	
+	public static HashMap<Integer, Integer> card_index = new HashMap<>();
+	
+	public Shared() {
+		for (int i = 0; i < Shared.unique_cards.length; i++) {
+			Shared.card_index.put(unique_cards[i], i);
+		}
+	}
+	
 	// Implementing Fisher–Yates shuffle
 	public static void shuffleArray(int[] ar)
 	{
@@ -63,7 +72,7 @@ public class Shared {
 		return reward_array;
 	}
 	
-	public static LinkedList<Hand> getActions(HandIndices handIndices, int[] player_cards, int num_cards) {
+	public static LinkedList<Hand> getActions(int[] player_cards, int num_cards) {
 		// assumes the cards are sorted
 		LinkedList<Hand> actions = new LinkedList<>();
 		
@@ -81,36 +90,36 @@ public class Shared {
 		
 		switch (num_cards) {
 			case 1:
-				for (int i = 0; i < handIndices.i1.length; i++) {
-					int card = handIndices.i1[i][0];
+				for (int i = 0; i < HandIndices.i1.length; i++) {
+					int card = HandIndices.i1[i][0];
 					// if its a legal hand add it
 					if (player_cards[card] != 0) {
-						actions.add(new Hand(handIndices.i1[i], 1));
+						actions.add(new Hand(HandIndices.i1[i], 1));
 					}
 				}
 				break;
 			case 2:
-				for (int i = 0; i < handIndices.i2.length; i++) {
+				for (int i = 0; i < HandIndices.i2.length; i++) {
 					// make cards array
 					int[] cards = new int[2];
 					for (int j = 0; j < 2; j++) {
-						cards[j] = player_cards[handIndices.i2[i][j]];
+						cards[j] = player_cards[HandIndices.i2[i][j]];
 					}
 					
 					// if its a legal hand add it
 					if (cards[0] != 0 && cards[1] != 0
 						&& Shared.getValue(cards[0]) == Shared.getValue(cards[1])
 						&& cards[0] != 112 && cards[1] != 112) {
-						actions.add(new Hand(handIndices.i2[i], 2));
+						actions.add(new Hand(HandIndices.i2[i], 2));
 					}
 				}
 				break;
 			case 3:
-				for (int i = 0; i < handIndices.i3.length; i++) {
+				for (int i = 0; i < HandIndices.i3.length; i++) {
 					// make cards array
 					int[] cards = new int[3];
 					for (int j = 0; j < 3; j++) {
-						cards[j] = player_cards[handIndices.i3[i][j]];
+						cards[j] = player_cards[HandIndices.i3[i][j]];
 					}
 					
 					// if its a legal hand add it
@@ -118,16 +127,16 @@ public class Shared {
 						&& Shared.getValue(cards[0]) == Shared.getValue(cards[1]) 
 						&& Shared.getValue(cards[0]) == Shared.getValue(cards[2])
 						&& Shared.getValue(cards[0]) != 11) {
-						actions.add(new Hand(handIndices.i3[i], 3));
+						actions.add(new Hand(HandIndices.i3[i], 3));
 					}
 				}
 				break;
 			case 4:
-				for (int i = 0; i < handIndices.i4.length; i++) {
+				for (int i = 0; i < HandIndices.i4.length; i++) {
 					// make cards array
 					int[] cards = new int[4];
 					for (int j = 0; j < 4; j++) {
-						cards[j] = player_cards[handIndices.i4[i][j]];
+						cards[j] = player_cards[HandIndices.i4[i][j]];
 					}
 					
 					// if its a legal hand add it
@@ -135,17 +144,17 @@ public class Shared {
 						&& Shared.getValue(cards[0]) == Shared.getValue(cards[1]) 
 						&& Shared.getValue(cards[0]) == Shared.getValue(cards[2])
 						&& Shared.getValue(cards[0]) == Shared.getValue(cards[3])) {
-						actions.add(new Hand(handIndices.i4[i], 4));
+						actions.add(new Hand(HandIndices.i4[i], 4));
 					}
 				}
 				break;
 			case 5:
-				for (int i = 0; i < handIndices.i5.length; i++) {
+				for (int i = 0; i < HandIndices.i5.length; i++) {
 					// make cards array and check for zeros
 					boolean should_continue = false;
 					int[] cards = new int[5];
 					for (int j = 0; j < 5; j++) {
-						cards[j] = player_cards[handIndices.i5[i][j]];
+						cards[j] = player_cards[HandIndices.i5[i][j]];
 						if (cards[j] == 0) {
 							should_continue = true;
 							break;
@@ -164,7 +173,7 @@ public class Shared {
 						}
 					}
 					if (is_straight && Shared.getValue(cards[4]) != 11) {
-						actions.add(new Hand(handIndices.i5[i], 5));
+						actions.add(new Hand(HandIndices.i5[i], 5));
 						continue;
 					}
 					
@@ -178,8 +187,8 @@ public class Shared {
 							break;
 						}
 					}
-					if (is_flush) {
-						actions.add(new Hand(handIndices.i5[i], 5));
+					if (is_flush && Shared.getValue(cards[4]) != 11) {
+						actions.add(new Hand(HandIndices.i5[i], 5));
 						continue;
 					}
 					
@@ -189,7 +198,7 @@ public class Shared {
 						&& (Shared.getValue(cards[1]) == Shared.getValue(cards[2])
 						|| Shared.getValue(cards[2]) == Shared.getValue(cards[3]))
 						&& cards[3] != 112 && cards[4] != 112) {
-						actions.add(new Hand(handIndices.i5[i], 5));
+						actions.add(new Hand(HandIndices.i5[i], 5));
 						continue;
 					}
 				}
@@ -289,8 +298,8 @@ public class Shared {
 		return -1;
 	}
 	
-	public static void initializeActions(HandIndices handIndices, LinkedList<Hand>[] player_actions, int player_to_act, int num_cards, int[] player_cards) {
-		player_actions[num_cards - 1] = Shared.getActions(handIndices, player_cards, num_cards);
+	public static void initializeActions(LinkedList<Hand>[] player_actions, int num_cards, int[] player_cards) {
+		player_actions[num_cards - 1] = Shared.getActions(player_cards, num_cards);
 	}
 	
 	public static void printArray(int[] a) {

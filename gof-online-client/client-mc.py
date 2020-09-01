@@ -8,7 +8,7 @@ from sys import argv, exit
 
 # constants
 JAVA_PATH = "C:/Users/MATTPA~1/Desktop/jdk/jdk-12.0.2/bin/java.exe"
-ENGINE_PATH = "../engine/gof-ismcts/bin/"
+ENGINE_PATH = "../engine/gof-mc/bin/"
 ENGINE_MAIN_CLASS = "ISMCTS"
 
 USERNAME_DEFAULT = "big_bot"
